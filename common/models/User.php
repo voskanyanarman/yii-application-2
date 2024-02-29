@@ -54,7 +54,8 @@ class User extends ActiveRecord implements IdentityInterface
     public function rules()
     {
         return [
-            ['status', 'default', 'value' => self::STATUS_INACTIVE],
+
+            ['status', 'default', 'value' => self::STATUS_ACTIVE],
             ['status', 'in', 'range' => [self::STATUS_ACTIVE, self::STATUS_INACTIVE, self::STATUS_DELETED]],
         ];
     }
@@ -149,6 +150,14 @@ class User extends ActiveRecord implements IdentityInterface
     {
         return $this->auth_key;
     }
+    public static function getRoles() {
+        return [
+            'superadmin' => 'Superadmin',
+            'root' => 'Root',
+            'developer' => 'Developer',
+        ];
+    }
+
 
     /**
      * {@inheritdoc}
@@ -210,4 +219,14 @@ class User extends ActiveRecord implements IdentityInterface
     {
         $this->password_reset_token = null;
     }
+    public function afterSave($insert, $changedAttributes)
+    {
+        parent::afterSave($insert, $changedAttributes);
+
+        $auth = Yii::$app->authManager;
+        $role = $auth->getRole($this->role); // Assuming $this->role contains the role name
+        $auth->revokeAll($this->id); // Remove existing roles
+        $auth->assign($role, $this->id);
+    }
+
 }
